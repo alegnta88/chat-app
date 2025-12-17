@@ -16,11 +16,16 @@ export const userSignUp = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        const girlPicUrl = "https://example.com/girl-profile-pic.jpg";
+        const boyPicUrl = "https://example.com/boy-profile-pic.jpg";
+        const profilePic = gender === 'male' ? boyPicUrl : girlPicUrl;
+
         const newUser = new (mongoose.model('User'))({
             fullName,
             username,
             password: hashedPassword,
             gender,
+            profilePic: profilePic,
         });
 
         await newUser.save();

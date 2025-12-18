@@ -43,3 +43,32 @@ export const sendMessage = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const getMessages = async (req, res) => {
+  try {
+    const conversationId = req.params.conversationId;
+    const userId = req.user.id;
+
+    if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+      return res.status(400).json({ error: "Invalid conversation ID" });
+    }
+
+    const conversation = await Conversation.findById(conversationId);
+    if (
+      !conversation ||
+      !conversation.participants.includes(userId)
+    ) {
+      return res.status(403).json({ error: "Access denied to this conversation" });
+    }
+
+    const messages = await Message.find({ conversationId }).sort({ createdAt: 1 });
+
+    return res.status(200).json({
+      message: "Messages retrieved successfully",
+      data: messages,
+    });
+  } catch (error) {
+    console.error("Error retrieving messages:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};

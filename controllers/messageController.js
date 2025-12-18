@@ -1,8 +1,39 @@
+import Message from "../models/messageModel.js";
+import Conversation from "../models/conversationModel.js";
 import User from "../models/userModel.js";
-import bcrypt from "bcrypt";
-import { generateToken } from "../utils/jwt.js";
-import messageModel from "../models/messageModel.js";
 
-export const messageController = async (req, res) => {
-    console.log("Message controller reached");
+export const sendMessage = async (req, res) => {
+  try {
+    const receiverId = req.params.id;
+    const { message } = req.body;
+    const senderId = req.user.id;
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: "Message cannot be empty" });
+    }
+
+    const receiverExists = await User.findById(receiverId);
+    if (!receiverExists) {
+      return res.status(404).json({ error: "Receiver not found" });
+    }
+
+    const conversation = await getOrCreateConversation(senderId, receiverId);
+
+    const newMessage = await Message.create({
+      conversationId: conversation._id,
+      senderId,
+      text: message,
+    });
+
+    conversation.lastMessage = newMessage._id;
+    await conversation.save();
+
+    return res.status(201).json({
+      message: "Message sent successfully",
+      data: newMessage,
+    });
+  } catch (error) {
+    console.error("Error sending message:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 };

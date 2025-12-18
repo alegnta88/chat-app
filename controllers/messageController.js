@@ -2,20 +2,7 @@ import Message from "../models/messageModel.js";
 import Conversation from "../models/conversationModel.js";
 import User from "../models/userModel.js";
 import mongoose from "mongoose";
-
-const getOrCreateConversation = async (userA, userB) => {
-  let conversation = await Conversation.findOne({
-    participants: { $all: [userA, userB] },
-  });
-
-  if (!conversation) {
-    conversation = await Conversation.create({
-      participants: [userA, userB],
-    });
-  }
-
-  return conversation;
-};
+import { getOrCreateConversation } from "../utils/conversationHelper.js";
 
 export const sendMessage = async (req, res) => {
   try {

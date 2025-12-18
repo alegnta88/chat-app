@@ -1,6 +1,21 @@
 import Message from "../models/messageModel.js";
 import Conversation from "../models/conversationModel.js";
 import User from "../models/userModel.js";
+import mongoose from "mongoose";
+
+const getOrCreateConversation = async (userA, userB) => {
+  let conversation = await Conversation.findOne({
+    participants: { $all: [userA, userB] },
+  });
+
+  if (!conversation) {
+    conversation = await Conversation.create({
+      participants: [userA, userB],
+    });
+  }
+
+  return conversation;
+};
 
 export const sendMessage = async (req, res) => {
   try {
@@ -8,7 +23,11 @@ export const sendMessage = async (req, res) => {
     const { message } = req.body;
     const senderId = req.user.id;
 
-    if (!message || !message.trim()) {
+    if (!mongoose.Types.ObjectId.isValid(receiverId)) {
+      return res.status(400).json({ error: "Invalid receiver ID" });
+    }
+
+    if (!message?.trim()) {
       return res.status(400).json({ error: "Message cannot be empty" });
     }
 

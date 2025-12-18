@@ -14,6 +14,10 @@ export const sendMessage = async (req, res) => {
       return res.status(400).json({ error: "Invalid receiver ID" });
     }
 
+    if (receiverId === senderId) {
+      return res.status(400).json({ error: "Cannot send message to yourself" });
+    }
+
     if (!message?.trim()) {
       return res.status(400).json({ error: "Message cannot be empty" });
     }
@@ -61,7 +65,7 @@ export const getMessages = async (req, res) => {
       return res.status(403).json({ error: "Access denied to this conversation" });
     }
 
-    const messages = await Message.find({ conversationId }).sort({ createdAt: 1 });
+    const messages = await Message.find({ conversationId }).sort({ createdAt: -1 });
 
     return res.status(200).json({
       message: "Messages retrieved successfully",

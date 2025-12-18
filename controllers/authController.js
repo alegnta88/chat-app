@@ -1,37 +1,43 @@
-import mongoose from "mongoose";
+import User from "../models/userModel.js";
 import bcrypt from "bcrypt";
 
 export const userSignUp = async (req, res) => {
-    try {
-        const { fullName, username, password, confirmPassword, gender } = req.body;
+  try {
+    const { fullName, username, password, confirmPassword, gender } = req.body;
 
-        if (password !== confirmPassword) {
-            return res.status(400).json({ message: "Passwords do not match" });
-        }
-
-        const existingUser = await mongoose.model('User').findOne({ username });
-        if (existingUser) {
-            return res.status(400).json({ message: "Username already taken" });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const girlPicUrl = "https://example.com/girl-profile-pic.jpg";
-        const boyPicUrl = "https://example.com/boy-profile-pic.jpg";
-        const profilePic = gender === 'male' ? boyPicUrl : girlPicUrl;
-
-        const newUser = new (mongoose.model('User'))({
-            fullName,
-            username,
-            password: hashedPassword,
-            gender,
-            profilePic: profilePic,
-        });
-
-        await newUser.save();
-
-        res.status(201).json({ message: "User registered successfully" });
-    } catch (error) {
-        res.status(500).json({ message: "Server error" });
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
     }
+
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ message: "Username already taken" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const baseAvatarUrl = "https://avatar.iran.liara.run/public";
+    const profilePic =
+      gender === "male"
+        ? `${baseAvatarUrl}/boy?username=${encodeURIComponent(username)}`
+        : `${baseAvatarUrl}/girl?username=${encodeURIComponent(username)}`;
+
+    const newUser = await User.create({
+      fullName,
+      username,
+      password: hashedPassword,
+      gender,
+      profilePic,
+    });
+
+    res.status(201).json({
+      message: "User registered successfully",
+      userId: newUser._id,
+      profilePic,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
+

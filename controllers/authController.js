@@ -10,6 +10,10 @@ export const userSignUp = async (req, res) => {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
+    if (gender !== "male" && gender !== "female") {
+      return res.status(400).json({ message: "Invalid gender" });
+    }
+
     const existingUser = await User.findOne({ username });
     if (existingUser) {
       return res.status(400).json({ message: "Username already taken" });

@@ -2,7 +2,11 @@ import User from "../models/userModel.js";
 
 export const getUsers = async (req, res) => {
   try {
-    const users = await User.find({}, "username fullName profilePic");
+    const users = await User.find(
+      { _id: { $ne: req.user._id } },
+      "username fullName profilePic"
+    );
+
     res.status(200).json(users);
   } catch (error) {
     console.error(error);

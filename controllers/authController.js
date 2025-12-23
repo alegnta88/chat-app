@@ -3,12 +3,25 @@ import bcrypt from "bcrypt";
 import { generateToken } from "../utils/jwt.js";
 import dotenv from "dotenv";
 import { sendSMS } from "../utils/sendSMS.js";
+import { sendMessage } from "./messageController.js";
+import { isValidPhone } from "../validators/phoneValidator.js";
+
 
 dotenv.config();
 
 export const userSignUp = async (req, res) => {
   try {
     const { fullName, username, phone, password, confirmPassword, gender } = req.body;
+
+    if (!fullName || !username || !phone || !password || !confirmPassword || !gender) {
+      return res.status(400).json({ message: "All fields are required" }); 
+    }
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({
+        message: "Phone number must be 10 digits and start with 09",
+      });
+    }
 
     if (password !== confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
@@ -31,6 +44,10 @@ export const userSignUp = async (req, res) => {
         ? `${baseAvatarUrl}/boy?username=${encodeURIComponent(username)}`
         : `${baseAvatarUrl}/girl?username=${encodeURIComponent(username)}`;
 
+    // const smsMessage = `Welcome to our ChatApp, ${fullName}! Your username is ${username}.`;
+   // await sendSMS(phone, smsMessage);
+   // console.log("Sending SMS:", sendMessage)
+
     const newUser = await User.create({
       fullName,
       username,
@@ -39,9 +56,6 @@ export const userSignUp = async (req, res) => {
       gender,
       profilePic,
     });
-
-    const smsMessage = `Welcome to our ChatApp, ${fullName}! Your username is ${username}.`;
-    await sendSMS(phone, smsMessage);
 
     res.status(201).json({
       message: "User registered successfully",

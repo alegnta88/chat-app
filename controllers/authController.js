@@ -47,6 +47,7 @@ export const userSignUp = async (req, res) => {
       message: "User registered successfully",
       username: newUser.username,
       userId: newUser._id,
+      phone: newUser.phone,
       profilePic,
     });
   } catch (error) {

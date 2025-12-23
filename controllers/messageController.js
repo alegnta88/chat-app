@@ -7,7 +7,7 @@ import DOMPurify from "isomorphic-dompurify";
 
 const MAX_MESSAGE_LENGTH = 5000;
 
-export const sendMessage = async (req, res) => {
+export const sendMessage = async (req, res) => { 
   const session = await mongoose.startSession();
   
   try {

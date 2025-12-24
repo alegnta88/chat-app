@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { sendSMS } from "../utils/sendSMS.js";
 import { sendMessage } from "./messageController.js";
 import { isValidPhone } from "../validators/phoneValidator.js";
+import { generateOTP } from "../utils/otpGenerator.js";
 
 
 dotenv.config();
@@ -44,7 +45,7 @@ export const userSignUp = async (req, res) => {
         ? `${baseAvatarUrl}/boy?username=${encodeURIComponent(username)}`
         : `${baseAvatarUrl}/girl?username=${encodeURIComponent(username)}`;
 
-   const smsMessage = `Welcome to our ChatApp, ${fullName}! Your username is ${username}.`;
+   const smsMessage = `Dear ${fullName}, Welcome to our ChatApp! Your username is ${username}.`;
    await sendSMS(phone, smsMessage);
    console.log("Welcome SMS sent to:", phone);
 
@@ -194,6 +195,73 @@ export const updatePassword = async (req, res) => {
     res.status(200).json({ message: "Password updated successfully" });
   } catch (error) {
     console.error("Update password error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const forgetPassword = async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({ message: "Phone number is required" });
+    }
+
+    const user = await User.findOne({ phone });
+    if (!user) {
+      return res.status(404).json({ message: "User with this phone number not found" });
+    }
+
+    const otp = generateOTP();
+    const otpExpiry = Date.now() + 15 * 60 * 1000;
+
+    user.forgetPasswordOTP = otp;
+    user.forgetPasswordOTPExpiry = otpExpiry;
+    await user.save();
+
+    const smsMessage = `Your OTP for password reset is: ${otp}. It is valid for 15 minutes.`;
+    const smsSent = await sendSMS(phone, smsMessage);
+    if (!smsSent) {
+      return res.status(500).json({ message: "Failed to send OTP SMS" });
+    }
+
+    res.status(200).json({ message: "OTP sent to your phone number" });
+  } catch (error) {
+    console.error("Forget password error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { phone, otp, newPassword, confirmNewPassword } = req.body;
+
+    if (!phone || !otp || !newPassword || !confirmNewPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      return res.status(400).json({ message: "New passwords do not match" });
+    }
+
+    const user = await User.findOne({ phone });
+    if (!user) {
+      return res.status(404).json({ message: "User with this phone number not found" });
+    }
+
+    if (user.forgetPasswordOTP !== otp || Date.now() > user.forgetPasswordOTPExpiry) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedNewPassword;
+    user.forgetPasswordOTP = null;
+    user.forgetPasswordOTPExpiry = null;
+    await user.save();
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Reset password error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

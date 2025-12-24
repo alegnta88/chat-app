@@ -209,13 +209,15 @@ export const forgetPassword = async (req, res) => {
 
     const user = await User.findOne({ phone });
     if (!user) {
-      return res.status(404).json({ message: "User with this phone number not found" });
+      return res.status(404).json({ message: "If the phone number exists OTP is sent" });
     }
 
     const otp = generateOTP();
-    const otpExpiry = Date.now() + 15 * 60 * 1000;
+    const otpExpiry = Date.now() + 5 * 60 * 1000;
 
-    user.forgetPasswordOTP = otp;
+    const hashedOTP = await bcrypt.hash(otp, 10);
+
+    user.forgetPasswordOTP = hashedOTP;
     user.forgetPasswordOTPExpiry = otpExpiry;
     await user.save();
 
@@ -246,10 +248,12 @@ export const resetPassword = async (req, res) => {
 
     const user = await User.findOne({ phone });
     if (!user) {
-      return res.status(404).json({ message: "User with this phone number not found" });
+      return res.status(404).json({ message: "User not exist" });
     }
 
-    if (user.forgetPasswordOTP !== otp || Date.now() > user.forgetPasswordOTPExpiry) {
+    const isOTPValid = await bcrypt.compare(otp, user.forgetPasswordOTP);
+
+    if (!isOTPValid || Date.now() > user.forgetPasswordOTPExpiry) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 

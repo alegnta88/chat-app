@@ -44,9 +44,9 @@ export const userSignUp = async (req, res) => {
         ? `${baseAvatarUrl}/boy?username=${encodeURIComponent(username)}`
         : `${baseAvatarUrl}/girl?username=${encodeURIComponent(username)}`;
 
-    // const smsMessage = `Welcome to our ChatApp, ${fullName}! Your username is ${username}.`;
-   // await sendSMS(phone, smsMessage);
-   // console.log("Sending SMS:", sendMessage)
+   const smsMessage = `Welcome to our ChatApp, ${fullName}! Your username is ${username}.`;
+   await sendSMS(phone, smsMessage);
+   console.log("Welcome SMS sent to:", phone);
 
     const newUser = await User.create({
       fullName,
@@ -113,3 +113,45 @@ export const userLogout = (req, res) => {
   });
   res.status(200).json({ message: "Logout successful" });
 };
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { fullName, phone, gender } = req.body;
+
+    if (!fullName || !phone || !gender) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({
+        message: "Phone number must be 10 digits and start with 09",
+      });
+
+    }
+
+    if (gender !== "male" &&  gender !== "female") {
+      return res.status(400).json({ message: "Invalid gender value" });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.fullName = fullName;
+    user.phone = phone;
+    user.gender = gender;
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      fullName: user.fullName,
+      phone: user.phone,
+      gender: user.gender,
+    })
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};  

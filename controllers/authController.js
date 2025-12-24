@@ -116,42 +116,46 @@ export const userLogout = (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { fullName, phone, gender } = req.body;
+    const userId = req.user.id;
+    const { fullName, phone } = req.body;
 
-    if (!fullName || !phone || !gender) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    if (!isValidPhone(phone)) {
+    if (!fullName && !phone) {
       return res.status(400).json({
-        message: "Phone number must be 10 digits and start with 09",
+        message: "At least one field is required",
       });
-
     }
 
-    if (gender !== "male" &&  gender !== "female") {
-      return res.status(400).json({ message: "Invalid gender value" });
+    const updateData = {};
+
+    if (fullName) {
+      updateData.fullName = fullName.trim();
     }
 
-    const user = await User.findById(req.user._id);
-    if (!user) {
+    if (phone) {
+      if (!isValidPhone(phone)) {
+        return res.status(400).json({
+          message: "Phone number must be 10 digits and start with 09",
+        });
+      }
+      updateData.phone = phone;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    user.fullName = fullName;
-    user.phone = phone;
-    user.gender = gender;
-
-    await user.save();
-
     res.status(200).json({
       message: "Profile updated successfully",
-      fullName: user.fullName,
-      phone: user.phone,
-      gender: user.gender,
-    })
+      data: updatedUser,
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Update profile error:", error);
     res.status(500).json({ message: "Server error" });
   }
-};  
+};
